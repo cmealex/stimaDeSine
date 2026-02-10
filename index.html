@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scala Rosenberg - Stima de sine</title>
+
+<style>
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #f4f6f9;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+    }
+
+    .container {
+        max-width: 750px;
+        width: 100%;
+        background: white;
+        margin: 40px 20px;
+        padding: 30px;
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .description {
+        text-align: center;
+        color: #555;
+        margin-bottom: 30px;
+        font-size: 14px;
+    }
+
+    .question {
+        margin-bottom: 22px;
+        padding: 15px;
+        border-radius: 10px;
+        background: #f9fafc;
+    }
+
+    .question p {
+        margin: 0 0 10px 0;
+        font-weight: 500;
+    }
+
+    .options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    label {
+        cursor: pointer;
+        background: #e9edf5;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: 0.2s;
+    }
+
+    input[type="radio"] {
+        display: none;
+    }
+
+    input[type="radio"]:checked + label {
+        background: #4a6cf7;
+        color: white;
+    }
+
+    button {
+        width: 100%;
+        padding: 12px;
+        margin-top: 20px;
+        border: none;
+        border-radius: 10px;
+        background: #4a6cf7;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    button:hover {
+        opacity: 0.9;
+    }
+
+    .result {
+        margin-top: 25px;
+        padding: 20px;
+        border-radius: 10px;
+        background: #eef2ff;
+        display: none;
+    }
+
+    .score {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .warning {
+        color: red;
+        text-align: center;
+        display: none;
+        margin-top: 15px;
+    }
+
+    @media(max-width:600px){
+        .options {
+            flex-direction: column;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>Scala Rosenberg</h1>
+    <div class="description">
+        Citește fiecare afirmație și alege varianta care ți se potrivește cel mai bine.
+    </div>
+
+    <form id="rosenbergForm"></form>
+
+    <div class="warning" id="warning">
+        Te rog să răspunzi la toate întrebările.
+    </div>
+
+    <button onclick="calculateScore()">Calculează scorul</button>
+
+    <div class="result" id="result">
+        <div class="score" id="scoreText"></div>
+        <div id="interpretation"></div>
+    </div>
+</div>
+
+<script>
+
+const questions = [
+    { text: "1. În general, sunt mulțumit(ă) de mine.", reverse: false },
+    { text: "2. Uneori simt că nu sunt bun(ă) de nimic.", reverse: true },
+    { text: "3. Consider că am o serie de calități bune.", reverse: false },
+    { text: "4. Sunt capabil(ă) să fac lucrurile la fel de bine ca majoritatea oamenilor.", reverse: false },
+    { text: "5. Simt că nu am prea multe motive să fiu mândru/mândră de mine.", reverse: true },
+    { text: "6. Uneori mă simt inutil(ă).", reverse: true },
+    { text: "7. Cred că sunt o persoană de valoare, cel puțin la fel ca ceilalți.", reverse: false },
+    { text: "8. Mi-aș dori să am mai mult respect față de mine.", reverse: true },
+    { text: "9. În ansamblu, sunt înclinat(ă) să cred că sunt un eșec.", reverse: true },
+    { text: "10. Am o atitudine pozitivă față de mine.", reverse: false }
+];
+
+const form = document.getElementById("rosenbergForm");
+
+questions.forEach((q, index) => {
+    const div = document.createElement("div");
+    div.className = "question";
+
+    const p = document.createElement("p");
+    p.textContent = q.text;
+    div.appendChild(p);
+
+    const optionsDiv = document.createElement("div");
+    optionsDiv.className = "options";
+
+    const options = [
+        { value: 3, label: "Total de acord" },
+        { value: 2, label: "De acord" },
+        { value: 1, label: "Dezacord" },
+        { value: 0, label: "Total dezacord" }
+    ];
+
+    options.forEach(opt => {
+        const id = `q${index}_${opt.value}`;
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = `q${index}`;
+        input.value = opt.value;
+        input.id = id;
+
+        const label = document.createElement("label");
+        label.htmlFor = id;
+        label.textContent = opt.label;
+
+        optionsDiv.appendChild(input);
+        optionsDiv.appendChild(label);
+    });
+
+    div.appendChild(optionsDiv);
+    form.appendChild(div);
+});
+
+function calculateScore() {
+    let total = 0;
+
+    for (let i = 0; i < questions.length; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        if (!selected) {
+            document.getElementById("warning").style.display = "block";
+            document.getElementById("result").style.display = "none";
+            return;
+        }
+
+        let value = parseInt(selected.value);
+
+        if (questions[i].reverse) {
+            value = 3 - value; // recodare
+        }
+
+        total += value;
+    }
+
+    document.getElementById("warning").style.display = "none";
+
+    let interpretation = "";
+    if (total <= 15) {
+        interpretation = "Nivel scăzut al stimei de sine.";
+    } else if (total <= 25) {
+        interpretation = "Nivel mediu al stimei de sine.";
+    } else {
+        interpretation = "Nivel ridicat al stimei de sine.";
+    }
+
+    document.getElementById("scoreText").textContent = `Scor total: ${total} / 30`;
+    document.getElementById("interpretation").textContent = interpretation;
+    document.getElementById("result").style.display = "block";
+}
+
+</script>
+
+</body>
+</html>
